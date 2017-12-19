@@ -71,6 +71,12 @@ endfunction
 "FUNCTION: TreeFileNode.delete {{{1
 "Removes this node from the tree and calls the Delete method for its path obj
 function! s:TreeFileNode.delete()
+    call self._nerdtree.plugin.DeleteNode(self)
+endfunction
+
+"FUNCTION: TreeFileNode._delete {{{1
+"Removes this node from the tree and calls the Delete method for its path obj
+function! s:TreeFileNode._delete()
     call self.path.delete()
     call self.parent.removeChild(self)
 endfunction
@@ -307,6 +313,12 @@ endfunction
 "FUNCTION: TreeFileNode.rename() {{{1
 "Calls the rename method for this nodes path obj
 function! s:TreeFileNode.rename(newName)
+    call self._nerdtree.plugin.RenameNode(self, a:newName)
+endfunction
+
+"FUNCTION: TreeFileNode._rename() {{{1
+"Calls the rename method for this nodes path obj
+function! s:TreeFileNode._rename(newName)
     let newName = substitute(a:newName, '\(\\\|\/\)$', '', '')
     call self.path.rename(newName)
     call self.parent.removeChild(self)

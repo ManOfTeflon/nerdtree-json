@@ -10,6 +10,10 @@ endfunction
 
 "FUNCTION: s:NERDTree.changeRoot(node) {{{1
 function! s:NERDTree.changeRoot(node)
+    if !a:node.path.isUnder(self.root.path)
+        self.resetPlugin()
+    endif
+
     if a:node.path.isDirectory
         let self.root = a:node
     else
@@ -21,7 +25,7 @@ function! s:NERDTree.changeRoot(node)
 
     "change dir to the dir of the new root if instructed to
     if g:NERDTreeChDirMode ==# 2
-        call self.root.path.changeToDir()
+        call self.plugin.Chdir(self.root.path)
     endif
 
     call self.render()
@@ -164,13 +168,18 @@ function! s:NERDTree.MustBeOpen()
     endif
 endfunction
 
-"FUNCTION: s:NERDTree.New() {{{1
-function! s:NERDTree.New(path, type)
+"FUNCTION: s:NERDTree.New(path, type, plugin) {{{1
+function! s:NERDTree.New(path, type, plugin)
     let newObj = copy(self)
     let newObj.ui = g:NERDTreeUI.New(newObj)
     let newObj.root = g:NERDTreeDirNode.New(a:path, newObj)
     let newObj._type = a:type
+    let newObj.plugin = a:plugin
     return newObj
+endfunction
+
+function! s:NERDTree.resetPlugin()
+    let self.plugin = g:NERDTreePluin.New()
 endfunction
 
 "FUNCTION: s:NERDTree.PathFilters() {{{1

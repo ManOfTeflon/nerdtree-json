@@ -524,13 +524,16 @@ endfunction
 
 " FUNCTION: Path.New() {{{1
 " The Constructor for the Path object
-function! s:Path.New(path)
+function! s:Path.New(path, ...)
+    let plugin = a:0 > 1 ? a:2 : g:NERDTreePlugin.New()
+
     let newPath = copy(self)
 
     call newPath.readInfoFromDisk(s:Path.AbsolutePathFor(a:path))
 
     let newPath.cachedDisplayString = ""
     let newPath.flagSet = g:NERDTreeFlagSet.New()
+    let newPath.plugin = plugin
 
     return newPath
 endfunction

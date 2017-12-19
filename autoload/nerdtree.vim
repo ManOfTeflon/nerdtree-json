@@ -139,6 +139,7 @@ function! nerdtree#loadClassFiles()
     runtime lib/nerdtree/ui.vim
     runtime lib/nerdtree/event.vim
     runtime lib/nerdtree/notifier.vim
+    runtime lib/nerdtree/plugin.vim
 endfunction
 
 " FUNCTION: nerdtree#postSourceActions() {{{2

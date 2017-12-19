@@ -252,12 +252,12 @@ function! s:Opener._openFile()
     call self._gotoTargetWin()
 
     if self._stay
-        silent call self._path.edit()
+        silent call self._nerdtree.plugin.Activate(self._path)
         call self._restoreCursorPos()
         return
     endif
 
-    call self._path.edit()
+    call self._nerdtree.plugin.Activate(self._path)
 endfunction
 
 " FUNCTION: Opener._openDirectory(node) {{{1

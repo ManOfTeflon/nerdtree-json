@@ -39,15 +39,16 @@ function! s:Creator.BufNamePrefix()
 endfunction
 
 " FUNCTION: s:Creator.CreateTabTree(a:name) {{{1
-function! s:Creator.CreateTabTree(name)
+function! s:Creator.CreateTabTree(name, ...)
     let creator = s:Creator.New()
-    call creator.createTabTree(a:name)
+    let plugin = a:0 > 1 ? a:2 : g:NERDTreePlugin.New()
+    call creator.createTabTree(a:name, plugin)
 endfunction
 
-" FUNCTION: s:Creator.createTabTree(a:name) {{{1
+" FUNCTION: s:Creator.createTabTree(a:name,a:plugin) {{{1
 " name: the name of a bookmark or a directory
-function! s:Creator.createTabTree(name)
-    let l:path = self._pathForString(a:name)
+function! s:Creator.createTabTree(name, plugin)
+    let l:path = a:plugin.ParsePath(a:name)
 
     " Abort if an exception was thrown (i.e., if the bookmark or directory
     " does not exist).
@@ -57,7 +58,7 @@ function! s:Creator.createTabTree(name)
 
     " Obey the user's preferences for changing the working directory.
     if g:NERDTreeChDirMode != 0
-        call l:path.changeToDir()
+        call a:plugin.Chdir(l:path)
     endif
 
     if g:NERDTree.ExistsForTab()
@@ -66,7 +67,7 @@ function! s:Creator.createTabTree(name)
     endif
 
     call self._createTreeWin()
-    call self._createNERDTree(l:path, 'tab')
+    call self._createNERDTree(l:path, 'tab', a:plugin)
     call b:NERDTree.render()
     call b:NERDTree.root.putCursorHere(0, 0)
 
@@ -74,13 +75,14 @@ function! s:Creator.createTabTree(name)
 endfunction
 
 " FUNCTION: s:Creator.CreateWindowTree(dir) {{{1
-function! s:Creator.CreateWindowTree(dir)
+function! s:Creator.CreateWindowTree(dir, ...)
     let creator = s:Creator.New()
-    call creator.createWindowTree(a:dir)
+    let plugin = a:0 > 1 ? a:2 : g:NERDTreePlugin.New()
+    call creator.createWindowTree(a:dir, plugin)
 endfunction
 
 " FUNCTION: s:Creator.createWindowTree(dir) {{{1
-function! s:Creator.createWindowTree(dir)
+function! s:Creator.createWindowTree(dir, plugin)
     try
         let path = g:NERDTreePath.New(a:dir)
     catch /^NERDTree.InvalidArgumentsError/
@@ -97,7 +99,7 @@ function! s:Creator.createWindowTree(dir)
     "all independent
     exec g:NERDTreeCreatePrefix . " edit " . self._nextBufferName()
 
-    call self._createNERDTree(path, "window")
+    call self._createNERDTree(path, "window", a:plugin)
     let b:NERDTree._previousBuf = bufnr(previousBuf)
     call self._setCommonBufOptions()
 
@@ -106,9 +108,9 @@ function! s:Creator.createWindowTree(dir)
     call self._broadcastInitEvent()
 endfunction
 
-" FUNCTION: s:Creator._createNERDTree(path) {{{1
-function! s:Creator._createNERDTree(path, type)
-    let b:NERDTree = g:NERDTree.New(a:path, a:type)
+" FUNCTION: s:Creator._createNERDTree(path, type, plugin) {{{1
+function! s:Creator._createNERDTree(path, type, plugin)
+    let b:NERDTree = g:NERDTree.New(a:path, a:type, a:plugin)
 
     " TODO: This assignment is kept for compatibility reasons.  Many other
     " plugins use "b:NERDTreeRoot" instead of "b:NERDTree.root".  Remove this
@@ -234,7 +236,7 @@ endfunction
 
 " FUNCTION: s:Creator._pathForString(str) {{{1
 " find a bookmark or adirectory for the given string
-function! s:Creator._pathForString(str)
+function! s:Creator._pathForString(str, plugin)
     let path = {}
     if g:NERDTreeBookmark.BookmarkExistsFor(a:str)
         let path = g:NERDTreeBookmark.BookmarkFor(a:str).path
@@ -248,7 +250,7 @@ function! s:Creator._pathForString(str)
         let dir = g:NERDTreePath.Resolve(dir)
 
         try
-            let path = g:NERDTreePath.New(dir)
+            let path = g:NERDTreePath.New(a:dir)
         catch /^NERDTree.InvalidArgumentsError/
             call nerdtree#echo("No bookmark or directory found for: " . a:str)
             return {}
@@ -360,7 +362,7 @@ function! s:Creator.toggleTabTree(dir)
             call g:NERDTree.Close()
         endif
     else
-        call self.createTabTree(a:dir)
+        call self.createTabTree(a:dir, {})
     endif
 endfunction
 

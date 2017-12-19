@@ -363,7 +363,7 @@ function! s:TreeDirNode._initChildren(silent)
     "remove all the current child nodes
     let self.children = []
 
-    let files = self._glob('*', 1) + self._glob('.*', 0)
+    let files = self._nerdtree.plugin.ListChildren(self.path)
 
     if !a:silent && len(files) > g:NERDTreeNotificationThreshold
         call nerdtree#echo("Please wait, caching a large dir ...")
@@ -510,7 +510,7 @@ function! s:TreeDirNode.refresh()
 
     "if this node was ever opened, refresh its children
     if self.isOpen || !empty(self.children)
-        let files = self._glob('*', 1) + self._glob('.*', 0)
+        let files = self._nerdtree.plugin.ListChildren(self.path)
         let newChildNodes = []
         let invalidFilesFound = 0
         for i in files

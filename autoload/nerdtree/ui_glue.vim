@@ -136,7 +136,7 @@ endfunction
 " FUNCTION: s:chCwd(node) {{{1
 function! s:chCwd(node)
     try
-        call a:node.path.changeToDir()
+        call a:node.getNerdTree().plugin.Chdir(path)
     catch /^NERDTree.PathChangeError/
         call nerdtree#echoWarning("could not change cwd")
     endtry
@@ -301,6 +301,7 @@ function! s:findAndRevealPath(path)
             else
                 call g:NERDTree.CursorToTreeWin()
             endif
+            call b:NERDTree.resetPlugin()
             call b:NERDTree.ui.setShowHidden(g:NERDTreeShowHidden)
             call s:chRoot(g:NERDTreeDirNode.New(p.getParent(), b:NERDTree))
         else
@@ -666,7 +667,7 @@ function! nerdtree#ui_glue#upDir(keepState)
         endif
 
         if g:NERDTreeChDirMode ==# 2
-            call b:NERDTree.root.path.changeToDir()
+            call b:NERDTree.plugin.Chdir(b:NERDTree.root.path)
         endif
 
         call b:NERDTree.render()
