@@ -363,31 +363,60 @@ function! s:TreeDirNode._initChildren(silent)
     "remove all the current child nodes
     let self.children = []
 
-    let files = self._glob('*', 1) + self._glob('.*', 0)
+    if self.path.isJSON == 1
+        if type(self.path.json) == type("")
+            if exists("b:NERDTreePlugin") && has_key(b:NERDTreePlugin, "FetchChildren")
+                try
+                    let [ name, lines ] = b:NERDTreePlugin.FetchChildren(self.path.json)
+                    if empty(self.path.pathSegments)
+                        let self.path.pathSegments = [ name ]
+                    endif
+                catch
+                    let lines = { "Error running plugin": {} }
+                endtry
+            else
+                let lines = pyeval("json.loads(vim.eval('self.path.json'))")
+            endif
+        else
+            let lines = self.path.json
+        endif
 
-    if !a:silent && len(files) > g:NERDTreeNotificationThreshold
-        call nerdtree#echo("Please wait, caching a large dir ...")
-    endif
+        if type(lines) == type({})
+            for [ name, json ] in items(lines)
+                let path = g:NERDTreePath.FromJSON(self.path.pathSegments + [ name ], json)
+                call self.createChild(path, 0)
+                unlet json
+            endfor
+        endif
 
-    let invalidFilesFound = 0
-    for i in files
-        try
-            let path = g:NERDTreePath.New(i)
-            call self.createChild(path, 0)
-            call g:NERDTreePathNotifier.NotifyListeners('init', path, self.getNerdtree(), {})
-        catch /^NERDTree.\(InvalidArguments\|InvalidFiletype\)Error/
-            let invalidFilesFound += 1
-        endtry
-    endfor
+        call self.sortChildren()
+    else
+        let files = self._glob('*', 1) + self._glob('.*', 0)
 
-    call self.sortChildren()
+        if !a:silent && len(files) > g:NERDTreeNotificationThreshold
+            call nerdtree#echo("Please wait, caching a large dir ...")
+        endif
 
-    if !a:silent && len(files) > g:NERDTreeNotificationThreshold
-        call nerdtree#echo("Please wait, caching a large dir ... DONE (". self.getChildCount() ." nodes cached).")
-    endif
+        let invalidFilesFound = 0
+        for i in files
+            try
+                let path = g:NERDTreePath.New(i)
+                call self.createChild(path, 0)
+                call g:NERDTreePathNotifier.NotifyListeners('init', path, self.getNerdtree(), {})
+            catch /^NERDTree.\(InvalidArguments\|InvalidFiletype\)Error/
+                let invalidFilesFound += 1
+            endtry
+        endfor
 
-    if invalidFilesFound
-        call nerdtree#echoWarning(invalidFilesFound . " file(s) could not be loaded into the NERD tree")
+        call self.sortChildren()
+
+        if !a:silent && len(files) > g:NERDTreeNotificationThreshold
+            call nerdtree#echo("Please wait, caching a large dir ... DONE (". self.getChildCount() ." nodes cached).")
+        endif
+
+        if invalidFilesFound
+            call nerdtree#echoWarning(invalidFilesFound . " file(s) could not be loaded into the NERD tree")
+        endif
     endif
     return self.getChildCount()
 endfunction
@@ -399,7 +428,7 @@ endfunction
 " path: dir that the node represents
 " nerdtree: the tree the node belongs to
 function! s:TreeDirNode.New(path, nerdtree)
-    if a:path.isDirectory != 1
+    if a:path.isDirectory != 1 && a:path.isJSON != 1
         throw "NERDTree.InvalidArgumentsError: A TreeDirNode object must be instantiated with a directory Path object."
     endif
 
@@ -488,7 +517,7 @@ endfunction
 " FUNCTION: TreeDirNode._openInNewTab() {{{1
 function! s:TreeDirNode._openInNewTab()
     tabnew
-    call g:NERDTreeCreator.CreateTabTree(self.path.str())
+    call g:NERDTreeCreator.CreateTabTree(self.path.str(), {})
 endfunction
 
 " FUNCTION: TreeDirNode.openRecursively() {{{1

@@ -167,29 +167,42 @@ function! s:UI.getPath(ln)
     let curFile = self._stripMarkup(line)
 
     let dir = ""
+    let dirs = []
     let lnum = a:ln
     while lnum > 0
         let lnum = lnum - 1
         let curLine = getline(lnum)
         let curLineStripped = self._stripMarkup(curLine)
+        let isDir = curLine =~# self.MarkupReg()
 
         "have we reached the top of the tree?
         if lnum == rootLine
             let dir = self.nerdtree.root.path.str({'format': 'UI'}) . dir
+            let dirs = self.nerdtree.root.path.pathSegments + dirs
             break
         endif
-        if curLineStripped =~# '/$'
+        if isDir
             let lpindent = self._indentLevelFor(curLine)
             if lpindent < indent
                 let indent = indent - 1
 
                 let dir = substitute (curLineStripped,'^\\', "", "") . dir
+                let dirs = [ substitute (curLineStripped,'^\\', "", "") ] + dirs
                 continue
             endif
         endif
     endwhile
-    let curFile = self.nerdtree.root.path.drive . dir . curFile
-    let toReturn = g:NERDTreePath.New(curFile)
+    if self.nerdtree.root.path.isJSON == 0
+        if curFile =~# '/$'
+            let curFile = substitute(curFile, '/\?$', '/', "")
+        endif
+
+        let curFile = self.nerdtree.root.path.drive . dir . curFile
+        let toReturn = g:NERDTreePath.New(curFile)
+    else
+        let dirs = dirs + [ curFile ]
+        let toReturn = g:NERDTreePath.FromJSON(dirs, "")
+    endif
     return toReturn
 endfunction
 
@@ -370,6 +383,10 @@ function! s:UI._stripMarkup(line)
     "remove the tree parts and the leading space
     let line = substitute (line, g:NERDTreeUI.MarkupReg(),"","")
 
+    if self.nerdtree.root.path.isJSON
+        return line
+    endif
+
     "strip off any read only flag
     let line = substitute (line, ' \['.g:NERDTreeGlyphReadOnly.'\]', "","")
 
@@ -419,12 +436,22 @@ function! s:UI.render()
     endif
 
     "draw the header line
-    let header = self.nerdtree.root.path.str({'format': 'UI', 'truncateTo': winwidth(0)})
+    if !self.nerdtree.root.path.isJSON
+        let header = self.nerdtree.root.path.str({'format': 'UI', 'truncateTo': winwidth(0)})
+    else
+        let header = '/' . self.nerdtree.root.displayString()
+    endif
     call setline(line(".")+1, header)
     call cursor(line(".")+1, col("."))
 
     "draw the tree
     silent put =self.nerdtree.root.renderToString()
+
+    if self.nerdtree.root.path.isJSON
+        silent set ft=cpp
+    else
+        silent set ft=nerdtree
+    endif
 
     "delete the blank line at the top of the buffer
     silent 1,1delete _

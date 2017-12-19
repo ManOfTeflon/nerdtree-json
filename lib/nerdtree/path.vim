@@ -41,7 +41,7 @@ endfunction
 
 " FUNCTION: Path.cacheDisplayString() {{{1
 function! s:Path.cacheDisplayString() abort
-    let self.cachedDisplayString = self.getLastPathComponent(1)
+    let self.cachedDisplayString = self.getLastPathComponent(!self.isJSON)
 
     if self.isExecutable
         let self.cachedDisplayString = self.cachedDisplayString . '*'
@@ -519,6 +519,9 @@ endfunction
 " Args:
 " path: the other path obj to compare this with
 function! s:Path.equals(path)
+    if self.isJSON && a:path.isJSON
+        return self.pathSegments ==# a:path.pathSegments
+    endif
     return self.str() ==# a:path.str()
 endfunction
 
@@ -529,6 +532,31 @@ function! s:Path.New(path)
 
     call newPath.readInfoFromDisk(s:Path.AbsolutePathFor(a:path))
 
+    let newPath.isJSON = 0
+    let newPath.cachedDisplayString = ""
+    let newPath.flagSet = g:NERDTreeFlagSet.New()
+
+    return newPath
+endfunction
+
+" FUNCTION: Path.FromJSON() {{{1
+" The Constructor for the Path object
+function! s:Path.FromJSON(names, json)
+    let newPath = copy(self)
+
+    let newPath.drive = ''
+    let newPath.isReadOnly = 0
+    let newPath.isExecutable = 0
+    let newPath.pathSegments = a:names
+    let newPath.isSymLink = 0
+    if type(a:json) == type(0)
+        let newPath.isDirectory = 0
+    else
+        let newPath.isDirectory = 1
+    endif
+
+    let newPath.isJSON = 1
+    let newPath.json = a:json
     let newPath.cachedDisplayString = ""
     let newPath.flagSet = g:NERDTreeFlagSet.New()
 
@@ -708,11 +736,15 @@ endfunction
 
 " FUNCTION: Path._strForUI() {{{1
 function! s:Path._strForUI()
-    let toReturn = '/' . join(self.pathSegments, '/')
-    if self.isDirectory && toReturn != '/'
-        let toReturn  = toReturn . '/'
+    if self.isJSON
+        return '/' . join(self.pathSegments, '.')
+    else
+        let toReturn = '/' . join(self.pathSegments, '/')
+        if self.isDirectory && toReturn != '/'
+            let toReturn  = toReturn . '/'
+        endif
+        return toReturn
     endif
-    return toReturn
 endfunction
 
 " FUNCTION: Path._strForCd() {{{1

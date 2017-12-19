@@ -39,15 +39,25 @@ function! s:Creator.BufNamePrefix()
 endfunction
 
 " FUNCTION: s:Creator.CreateTabTree(a:name) {{{1
-function! s:Creator.CreateTabTree(name)
+function! s:Creator.CreateTabTree(name, plugin)
     let creator = s:Creator.New()
-    call creator.createTabTree(a:name)
+    call creator.createTabTree(a:name, 0, a:plugin)
+endfunction
+
+"FUNCTION: s:Creator.CreateTabTreeJSON(a:name, a:plugin) {{{1
+function! s:Creator.CreateTabTreeJSON(path, plugin)
+    let creator = s:Creator.New()
+    call creator.createTabTree(a:path, 1, a:plugin)
 endfunction
 
 " FUNCTION: s:Creator.createTabTree(a:name) {{{1
 " name: the name of a bookmark or a directory
-function! s:Creator.createTabTree(name)
-    let l:path = self._pathForString(a:name)
+function! s:Creator.createTabTree(name, json, plugin)
+    if a:json == 0
+        let l:path = self._pathForString(a:name)
+    else
+        let l:path = copy(a:name)
+    endif
 
     " Abort if an exception was thrown (i.e., if the bookmark or directory
     " does not exist).
@@ -66,6 +76,8 @@ function! s:Creator.createTabTree(name)
     endif
 
     call self._createTreeWin()
+    let b:NERDTreePlugin = a:plugin
+
     call self._createNERDTree(l:path, 'tab')
     call b:NERDTree.render()
     call b:NERDTree.root.putCursorHere(0, 0)
@@ -76,17 +88,27 @@ endfunction
 " FUNCTION: s:Creator.CreateWindowTree(dir) {{{1
 function! s:Creator.CreateWindowTree(dir)
     let creator = s:Creator.New()
-    call creator.createWindowTree(a:dir)
+    call creator.createWindowTree(a:dir, 0)
+endfunction
+
+"FUNCTION: s:Creator.CreateSecondary(dir) {{{1
+function! s:Creator.CreateWindowTreeJSON(path)
+    let creator = s:Creator.New()
+    call creator.createWindowTree(a:path, 1)
 endfunction
 
 " FUNCTION: s:Creator.createWindowTree(dir) {{{1
-function! s:Creator.createWindowTree(dir)
-    try
-        let path = g:NERDTreePath.New(a:dir)
-    catch /^NERDTree.InvalidArgumentsError/
-        call nerdtree#echo("Invalid directory name:" . a:name)
-        return
-    endtry
+function! s:Creator.createWindowTree(dir, json)
+    if a:json == 0
+        try
+            let path = g:NERDTreePath.New(a:dir)
+        catch /^NERDTree.InvalidArgumentsError/
+            call nerdtree#echo("Invalid directory name:" . a:name)
+            return
+        endtry
+    else
+        let path = copy(a:dir)
+    endif
 
     "we want the directory buffer to disappear when we do the :edit below
     setlocal bufhidden=wipe
@@ -182,15 +204,16 @@ endfunction
 " options etc
 function! s:Creator._createTreeWin()
     "create the nerd tree window
-    let splitLocation = g:NERDTreeWinPos ==# "left" ? "topleft " : "botright "
+    let splitLocation = (g:NERDTreeWinPos ==# "left" || g:NERDTreeWinPos ==# "top") ? "topleft " : "botright "
+    let splitDirection = (g:NERDTreeWinPos ==# "left" || g:NERDTreeWinPos ==# "right") ? "vertical " : ""
     let splitSize = g:NERDTreeWinSize
 
     if !exists('t:NERDTreeBufName')
         let t:NERDTreeBufName = self._nextBufferName()
-        silent! exec splitLocation . 'vertical ' . splitSize . ' new'
+        silent! exec splitLocation . splitDirection . splitSize . ' new'
         silent! exec "edit " . t:NERDTreeBufName
     else
-        silent! exec splitLocation . 'vertical ' . splitSize . ' split'
+        silent! exec splitLocation . splitDirection . splitSize . ' split'
         silent! exec "buffer " . t:NERDTreeBufName
     endif
 
@@ -360,7 +383,7 @@ function! s:Creator.toggleTabTree(dir)
             call g:NERDTree.Close()
         endif
     else
-        call self.createTabTree(a:dir)
+        call self.createTabTree(a:dir, 0, {})
     endif
 endfunction
 

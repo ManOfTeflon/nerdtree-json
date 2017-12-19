@@ -176,6 +176,10 @@ endif
 
 " SECTION: Public API {{{1
 "============================================================
+function! NERDTreeFromJSON(json, plugin)
+    call g:NERDTreeCreator.CreateTabTreeJSON(g:NERDTreePath.FromJSON([ ], a:json), a:plugin)
+endfunction
+
 function! NERDTreeAddMenuItem(options)
     call g:NERDTreeMenuItem.Create(a:options)
 endfunction

@@ -235,11 +235,25 @@ endfunction
 function! s:Opener.open(target)
 
     if self._path.isDirectory
-        call self._openDirectory(a:target)
+        if self._path.isJSON
+            call self._openJSON(a:target)
+        else
+            call self._openDirectory(a:target)
+        endif
         return
     endif
 
-    call self._openFile()
+    if !exists('b:NERDTreePlugin') || !has_key(b:NERDTreePlugin, 'Activate')
+        call self._openFile()
+    else
+        let Plugin = b:NERDTreePlugin
+        call self._gotoTargetWin()
+        try
+            call Plugin.Activate(a:target.path)
+        catch
+            echoe "Error running plugin"
+        endtry
+    endif
 endfunction
 
 " FUNCTION: Opener._openFile() {{{1
@@ -270,7 +284,7 @@ function! s:Opener._openDirectory(node)
         if empty(self._where)
             call b:NERDTree.changeRoot(a:node)
         elseif self._where == 't'
-            call g:NERDTreeCreator.CreateTabTree(a:node.path.str())
+            call g:NERDTreeCreator.CreateTabTree(a:node.path.str(), {})
         else
             call g:NERDTreeCreator.CreateWindowTree(a:node.path.str())
         endif
@@ -281,7 +295,30 @@ function! s:Opener._openDirectory(node)
     endif
 endfunction
 
-" FUNCTION: Opener._previousWindow() {{{1
+" FUNCTION: Opener._openJSON(node) {{{1
+function! s:Opener._openJSON(node)
+    call self._gotoTargetWin()
+
+    if self._nerdtree.isWinTree()
+        call g:NERDTreeCreator.CreateWindowTreeJSON(a:node.path, {})
+    else
+        if empty(self._where)
+            call a:node.makeRoot()
+            call nerdtree#renderView()
+            call a:node.putCursorHere(0, 0)
+        elseif self._where == 't'
+            call g:NERDTreeCreator.CreateTabTreeJSON(a:node.path, {})
+        else
+            call g:NERDTreeCreator.CreateWindowTreeJSON(a:node.path, {})
+        endif
+    endif
+
+    if self._stay
+        call self._restoreCursorPos()
+    endif
+endfunction
+
+"FUNCTION: Opener._previousWindow() {{{1
 function! s:Opener._previousWindow()
     if !self._isWindowUsable(winnr("#")) && self._firstUsableWindow() ==# -1
         call self._newSplit()
